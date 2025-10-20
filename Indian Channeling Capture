@@ -1,0 +1,190 @@
+import datetime
+import os
+import requests
+import time
+import urllib.request
+
+  # from selenium import webdriver
+  # > Huge import simple choice.
+
+from selenium.webdriver import Firefox
+from selenium.webdriver import ActionChains
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+  # from selenium.webdriver.support.ui import WebDriverWait
+  # from selenium.webdriver.support import expected_conditions as EC
+  # > Details and fast import smart choice.
+
+  # driver = webdriver.Firefox()
+  # driver = webdriver.Chrome()
+
+with Firefox() as driver:
+    channel_name = "Channel Name"
+    avg_frame_height = "1080p"
+    avg_frame_rate = "30fps"
+
+    os.mkdir("/home/suruga/Downloads/" + channel_name)
+    os.mkdir("/home/suruga/Downloads/" + channel_name + "/av1")
+    os.mkdir("/home/suruga/Downloads/" + channel_name + "/avc")
+    os.mkdir("/home/suruga/Downloads/" + channel_name + "/jpg")
+
+    link_file = open("/home/suruga/Downloads/" + channel_name + "/20251231 Link.txt", "w")
+    bash_file = open("/home/suruga/Downloads/" + channel_name + "/yt-dlp_bash.sh", "w")
+    bash_file.write("#!/bin/bash\n")
+
+    driver.get("https://www.youtube.com")
+  # title = driver.title
+
+  # driver.implicitly_wait(7)
+  # wait = WebDriverWait(driver, 7)
+  # wait.until
+    time.sleep(7)
+
+  # search_box = driver.find_element(By.NAME, "search")
+  # search_box.send_keys("Marathon")
+  # search_box.send_keys(Keys.RETURN)
+    driver.find_element(By.NAME, "search_query").send_keys(channel_name)
+    driver.find_element(By.NAME, "search_query").send_keys(Keys.RETURN)
+    time.sleep(7)
+
+    driver.find_element(By.LINK_TEXT, channel_name).click()
+    time.sleep(7)
+
+    driver.find_element(By.LINK_TEXT, "Videos").click()
+    time.sleep(7)
+
+  # driver.find_element(By.ID, "video-title-link").click()
+  # current_url = driver.find_element(By.ID, "video-title-link").get_attribute("href")
+  # print(current_url)
+
+    i = j = 0
+    temp_urls = list(range(300))
+  # > Initialization
+
+    cntr = 0
+    for cntr in range(30):
+        ActionChains(driver).key_down(Keys.PAGE_DOWN).perform()
+        cntr = cntr + 1
+
+  # href_values = [element.get_attribute("href") for element in current_urls]
+  # print(href_values)
+    current_urls = driver.find_elements(By.ID, "video-title-link")
+    for element in current_urls:
+        temp_urls[i] = element.get_attribute("href")
+      # print(temp_urls[i])
+      # print("yt-dlp -f 299+140 " + element.get_attribute("href"))
+        i = i + 1
+
+    i = i # or i = [Thumb Number]
+  # > Select thumb number.
+
+    driver.switch_to.new_window('tab')
+  # > Opens a new tab and switches to new tab
+
+  # driver.switch_to.new_window('window')
+  # > Opens a new window and switches to new window
+
+    k = i - 1
+
+    for j in range(i):
+        driver.get(temp_urls[k])
+        time.sleep(7)
+
+        ActionChains(driver).key_down(Keys.PAGE_DOWN).perform()
+        time.sleep(3)
+
+        driver.find_element(By.ID, "expand").click()
+      # > Information [...more] button click.
+        time.sleep(3)
+
+        informations = driver.find_element(By.ID, "info-container")\
+        .find_element(By.ID, "info")\
+        .find_elements(By.TAG_NAME, "span")
+
+        if len(informations[0].text) > 2:
+            upload_date = informations[2].text.replace("Premiered ", '')
+            convert_date = datetime.datetime.strptime(upload_date, "%b %d, %Y")
+            video_title = driver.find_element(By.TAG_NAME, "yt-formatted-string")
+
+            print_date = convert_date.strftime('%Y%m%d')
+            convert_title = video_title.text.replace('–', '-')
+
+            print(convert_date.strftime("DLS YTD " + '%Y%m%d' + " " + avg_frame_height + " " + avg_frame_rate + " " + convert_title))
+            link_file.write(convert_date.strftime("DLS YTD " + '%Y%m%d' + " " + avg_frame_height + " " + avg_frame_rate + " " + convert_title + "\n"))
+            convert_title = convert_title.replace('\\', '_')
+            convert_title = convert_title.replace('/', '_')
+            convert_title = convert_title.replace(':', '_')
+            convert_title = convert_title.replace('*', '_')
+            convert_title = convert_title.replace('?', '_')
+            convert_title = convert_title.replace('"', '_')
+            convert_title = convert_title.replace('<', '_')
+            convert_title = convert_title.replace('>', '_')
+            convert_title = convert_title.replace('|', '_')
+          # > Convert file name after write source title name.
+
+            eleven_code = temp_urls[k][32:]
+          # print(eleven_code[0:11])
+
+            print("yt-dlp -f avc+m4a " + temp_urls[k][0:32] + eleven_code[0:11])
+            link_file.write("\tyt-dlp -f avc+m4a " + temp_urls[k][0:32] + eleven_code[0:11] + "\n")
+            link_file.write("\tyt-dlp -f av1+m4a " + temp_urls[k][0:32] + eleven_code[0:11] + "\n")
+
+            try:
+                response = requests.get("https://i.ytimg.com/vi/" + eleven_code[0:11] + "/maxresdefault.jpg")
+                response.raise_for_status()
+
+              # driver.get("https://i.ytimg.com/vi/" + eleven_code[0:11] + "/maxresdefault.jpg")
+                urllib.request.urlretrieve("https://i.ytimg.com/vi/" + eleven_code[0:11] + "/maxresdefault.jpg", \
+                "/home/suruga/Downloads/" + channel_name + "/jpg/" + print_date + " 0720p 01fps " + convert_title + ".jpg")
+                time.sleep(7)
+
+            except requests.exceptions.HTTPError as e:
+                if e.response.status_code == 404:
+                    print("HTTP Error: 404 Not Found")
+
+                  # driver.get("https://i.ytimg.com/vi/" + eleven_code[0:11] + "/hqdefault.jpg")
+                    urllib.request.urlretrieve("https://i.ytimg.com/vi/" + eleven_code[0:11] + "/hqdefault.jpg", \
+                    "/home/suruga/Downloads/" + channel_name + "/jpg/" + print_date + " 0360p 01fps " + convert_title + ".jpg")
+                    time.sleep(7)
+                else:
+                    print("HTTP Error: " + e.response.status_code)
+
+            except request.exceptions.RequestException as e:
+                print("Request Error: Request Fail")
+
+            if 0 == (j % 2):
+                bash_file.write("sleep 150\n")
+
+            convert_title = convert_title.replace('$', "\\$")
+
+            bash_file.write("gnome-terminal --tab -- yt-dlp -f 137+140 " + temp_urls[k][0:32] + eleven_code[0:11] + \
+            " -o \"/home/suruga/Downloads/" + channel_name + "/avc/" + print_date + " " + avg_frame_height + " " + avg_frame_rate + " avc+m4a " + convert_title + ".mp4\"\n")
+            bash_file.write("gnome-terminal --tab -- yt-dlp -f 299+140 " + temp_urls[k][0:32] + eleven_code[0:11] + \
+            " -o \"/home/suruga/Downloads/" + channel_name + "/avc/" + print_date + " " + avg_frame_height + " " + avg_frame_rate + " avc+m4a " + convert_title + ".mp4\"\n")
+            bash_file.write("gnome-terminal --tab -- yt-dlp -f 399+140 " + temp_urls[k][0:32] + eleven_code[0:11] + \
+            " -o \"/home/suruga/Downloads/" + channel_name + "/av1/" + print_date + " " + avg_frame_height + " " + avg_frame_rate + " av1+m4a " + convert_title + ".mp4\"\n")
+
+        else:
+            time.sleep(3)
+      # > [0] Get Views Count, [2] Get Upload Date.
+
+        if len(informations[0].text) > 2:
+            informations[0] = \
+            informations[1] = \
+            informations[2] = ""
+        else:
+            informations[0] = \
+            informations[1] = ""            
+      # > Information list initialization.
+
+        j = j + 1
+        k = k - 1
+
+    link_file.write("\n")
+    bash_file.write("\n")
+
+    driver.close()
+  # > Close Tab
+
+    driver.quit()
+  # > Close Browser Window
